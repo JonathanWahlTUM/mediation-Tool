@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Planning & Mediation</title>
+  <style>
+    body {
+      margin: 0; 
+      padding: 0;
+      font-family: sans-serif;
+    }
+
+    header, footer {
+      background-color: #eee;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2rem;
+      padding: 2rem;
+    }
+
+    /* iFrames sollen die volle Breite nutzen, aber eine feste Höhe bekommen */
+    iframe {
+      width: 100%;
+      max-width: 1200px; /* damit es nicht unendlich breit wird */
+      height: 600px;
+      border: 1px solid #ccc; 
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Planning & Mediation</h1>
+  </header>
+
+  <div class="container">
+
+    <!-- OBERER BEREICH: ShapeDiver-Tool -->
+    <section>
+      <h2>ShapeDiver 3D-Konfiguration</h2>
+      <iframe 
+        src="https://www.shapediver.com/app/iframe/appbuilder-julia?primaryColor=%23317DD4&secondaryColor=%23393A45&surfaceColor=%23FFFFFF&backgroundColor=%23F8F8F8&showControls=1&showZoomButton=1&showFullscreenButton=1&showToggleControlsButton=1&hideDataOutputsIframe=1&hideAttributeVisualizationIframe=1&parametersDisable=1&parametersValidation=0"
+        frameborder="0"
+        allowfullscreen>
+      </iframe>
+    </section>
+
+    <!-- UNTERER BEREICH: Deine eigene Web-App -->
+    <section>
+      <h2>Voting Overview / Mediation-Tool</h2>
+      <!-- PASSE hier den Pfad zu Deiner Web-App an -->
+      <iframe 
+        src="./my-app/index.html" 
+        frameborder="0"
+        allowfullscreen>
+      </iframe>
+    </section>
+
+  </div>
+
+  <footer>
+    &copy; 2025 – Dein Name / Dein Projekt
+  </footer>
+  
+</body>
+</html>
