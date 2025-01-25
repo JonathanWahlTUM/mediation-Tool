@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <!-- Wichtig: Viewport-Einstellungen für mobiles Layout -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Participant</title>
+    <script src="/socket.io/socket.io.js"></script>
+
+    <style>
+      /* Reset / Grundlayout */
+      html, body {
+        margin: 0;
+        padding: 0;
+        font-family: sans-serif;
+        background: #f5f7fa;
+      }
+
+      /* Container auf gesamte Bildschirmhöhe, zentriert */
+      .container {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        width: 100%;
+        height: 100vh; /* Füllt Handy-Screen */
+        box-sizing: border-box;
+        padding: 10px;
+      }
+
+      .card {
+        background: #fff;
+        width: 100%;
+        max-width: 500px; /* Optional: damit es nicht zu breit wird auf Tablets */
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 15px;
+        box-sizing: border-box;
+        overflow-y: auto; /* Falls doch gescrollt werden muss */
+      }
+
+      .card h1 {
+        margin: 0 0 1rem;
+        font-size: 1.4rem;
+        text-align: center;
+      }
+
+      /* Form-Gruppen (Name & Profession) */
+      .form-group {
+        margin-bottom: 1rem;
+      }
+
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+      }
+
+      input[type="text"] {
+        width: 100%;
+        padding: 8px;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+
+      button {
+        display: inline-block;
+        padding: 10px 16px;
+        font-size: 1rem;
+        color: #fff;
+        background-color: #1e90ff; /* Blau */
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      hr {
+        margin: 1.5rem 0;
+        border: none;
+        border-top: 1px solid #eee;
+      }
+
+      /* Slider-Bereich */
+      #sliderSection p {
+        margin-bottom: 1rem;
+      }
+
+      .slider-item {
+        margin-bottom: 1.2rem;
+      }
+
+      .slider-item label {
+        font-weight: 500;
+      }
+
+      .slider-item input[type="range"] {
+        width: 100%;
+        margin-top: 0.3rem;
+      }
+
+      /* Building Variants (ROOF/FACADE/CORE) */
+      .variants {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .variants label {
+        font-weight: 600;
+        margin-right: 0.5rem;
+      }
+
+      .variants select {
+        margin-left: 0.5rem;
+        padding: 5px;
+        font-size: 1rem;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="card">
+
+        <h1>Voting</h1>
+
+        <!-- Name & Profession -->
+        <div class="form-group">
+          <label for="participantName">Name</label>
+          <input type="text" id="participantName" placeholder="Enter your name" />
+        </div>
+        <div class="form-group">
+          <label for="participantProfession">Profession</label>
+          <input type="text" id="participantProfession" placeholder="Enter your profession" />
+        </div>
+        <button id="registerBtn">Register</button>
+
+        <hr />
+
+        <!-- Slider Section (initially hidden) -->
+        <div id="sliderSection" style="display: none;">
+          <p>Move the sliders from -2 (negative) to +2 (positive). 0 is neutral.</p>
+          <div id="sliders"></div>
+
+          <hr />
+          <h3>Building Variants</h3>
+          <p>Select one variant for the Roof, Facade, and Core:</p>
+
+          <div class="variants">
+            <div>
+              <label>Roof:</label>
+              <select id="roofSelect">
+                <option value="1">Variant 1</option>
+                <option value="2">Variant 2</option>
+                <option value="3">Variant 3</option>
+              </select>
+            </div>
+            <div>
+              <label>Facade:</label>
+              <select id="facadeSelect">
+                <option value="1">Variant 1</option>
+                <option value="2">Variant 2</option>
+                <option value="3">Variant 3</option>
+              </select>
+            </div>
+            <div>
+              <label>Core:</label>
+              <select id="coreSelect">
+                <option value="1">Variant 1</option>
+                <option value="2">Variant 2</option>
+                <option value="3">Variant 3</option>
+              </select>
+            </div>
+          </div>
+        </div><!-- /sliderSection -->
+      </div><!-- /card -->
+    </div><!-- /container -->
+
+    <script>
+      const socket = io();
+
+      // Bar chart categories
+      const categories = [
+        { key: 'operationalCosts',     label: 'Operational Costs' },
+        { key: 'demolitionCosts',      label: 'Demolition Costs' },
+        { key: 'greenAreaCityCooling', label: 'Green Area & City Cooling' },
+        { key: 'co2Footprint',         label: 'CO2 Footprint' },
+        { key: 'reuseOfMaterial',      label: 'Reuse of Material' }
+      ];
+
+      const registerBtn = document.getElementById('registerBtn');
+      const nameInput = document.getElementById('participantName');
+      const professionInput = document.getElementById('participantProfession');
+      const sliderSection = document.getElementById('sliderSection');
+      const slidersDiv = document.getElementById('sliders');
+
+      // Variant dropdowns
+      const roofSelect = document.getElementById('roofSelect');
+      const facadeSelect = document.getElementById('facadeSelect');
+      const coreSelect = document.getElementById('coreSelect');
+
+      // 1) Register participant
+      registerBtn.addEventListener('click', () => {
+        const name = nameInput.value.trim();
+        const profession = professionInput.value.trim();
+        if (!name || !profession) {
+          alert("Please fill out Name and Profession!");
+          return;
+        }
+
+        socket.emit('registerParticipant', { name, profession });
+
+        // Disable inputs, show sliders
+        registerBtn.disabled = true;
+        nameInput.disabled = true;
+        professionInput.disabled = true;
+        sliderSection.style.display = 'block';
+
+        buildSliders();
+      });
+
+      // 2) Build sliders for categories
+      function buildSliders() {
+        categories.forEach(cat => {
+          const container = document.createElement('div');
+          container.className = 'slider-item';
+
+          const label = document.createElement('label');
+          label.textContent = cat.label + ": ";
+
+          const range = document.createElement('input');
+          range.type = 'range';
+          range.min = -2;
+          range.max = 2;
+          range.step = 1;
+          range.value = 0;
+
+          // Send updates to server on input
+          range.addEventListener('input', () => {
+            const value = parseInt(range.value, 10);
+            socket.emit('vote', { category: cat.key, value });
+          });
+
+          container.appendChild(label);
+          container.appendChild(range);
+          slidersDiv.appendChild(container);
+        });
+
+        // Listen for changes in roof/facade/core selects
+        roofSelect.addEventListener('change', sendVariantChoice);
+        facadeSelect.addEventListener('change', sendVariantChoice);
+        coreSelect.addEventListener('change', sendVariantChoice);
+      }
+
+      function sendVariantChoice() {
+        const roofChoice = parseInt(roofSelect.value, 10);
+        const facadeChoice = parseInt(facadeSelect.value, 10);
+        const coreChoice = parseInt(coreSelect.value, 10);
+        socket.emit('variantChoice', { roofChoice, facadeChoice, coreChoice });
+      }
+    </script>
+  </body>
+</html>
