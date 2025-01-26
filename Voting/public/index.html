@@ -128,17 +128,11 @@
       let corePieChartObj = null;
 
       // 1) IP abrufen & QR-Code setzen (sofern /api/ip existiert)
-      fetch('/api/ip')
-        .then(res => res.json())
-        .then(data => {
-          const ip = data.ip;
-          const participantURL = `http://${ip}:3000/participant.html`;
-          const qrAPI = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(participantURL)}`;
-          qrCodeImg.src = qrAPI;
-        })
-        .catch(err => {
-          console.error('Error fetching IP:', err);
-        });
+     // Anstelle von fetch('/api/ip')...
+const participantURL = window.location.origin + '/participant.html';
+const qrAPI = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
+            + encodeURIComponent(participantURL);
+qrCodeImg.src = qrAPI;
 
       // 2) Auf "results" vom Server reagieren -> Charts aktualisieren
       socket.on('results', (allParticipants) => {

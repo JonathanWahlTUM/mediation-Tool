@@ -3,13 +3,13 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
-const os = require('os'); // Für automatische IP-Erkennung
+const os = require('os'); // Für lokale IP-Erkennung (optional)
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// --- Define categories for the bar charts ---
+/* --- Define categories for the bar charts --- */
 const categories = [
   'operationalCosts',
   'demolitionCosts',
@@ -18,24 +18,25 @@ const categories = [
   'reuseOfMaterial'
 ];
 
-// We store participant data in an object, keyed by socket.id
-// participantData[socketId] = {
-//   name: string,
-//   profession: string,
-//   votes: { ... },
-//   roofChoice: number, // 1,2,3
-//   facadeChoice: number,
-//   coreChoice: number
-// }
+/* 
+  Wir speichern participantData[socket.id] = {
+    name, 
+    profession, 
+    votes: { category: value, ... }, 
+    roofChoice, 
+    facadeChoice, 
+    coreChoice
+  }
+*/
 let participantData = {};
 
-// --- Function to get local IP automatically ---
+/* --- OPTIONAL: automatische IP-Erkennung für lokales Debugging --- */
 function getLocalIPAddress() {
   const ifaces = os.networkInterfaces();
   for (const ifaceName in ifaces) {
     for (const iface of ifaces[ifaceName]) {
       if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address; // e.g. 192.168.0.213
+        return iface.address; // z.B. "192.168.0.213"
       }
     }
   }
@@ -44,29 +45,31 @@ function getLocalIPAddress() {
 const localIP = getLocalIPAddress();
 console.log('Local IP detected:', localIP);
 
-// Serve static files from the "public" folder
+/* --- Serve static files from the "public" folder --- */
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Small API endpoint so that "index.html" can fetch the IP
+/* --- Kleines API-Endpoint, um lokal die IP anzuzeigen. 
+       Auf Render ist das evtl. weniger aussagekräftig. --- */
 app.get('/api/ip', (req, res) => {
   res.json({ ip: localIP });
 });
 
+/* --- Socket.io-Setup --- */
 io.on('connection', (socket) => {
   console.log('New participant connected:', socket.id);
 
-  // When a participant registers (name + profession)
+  // Registrieren (Name + Profession)
   socket.on('registerParticipant', (data) => {
     participantData[socket.id] = {
       name: data.name || 'Unknown',
       profession: data.profession || 'Unknown',
       votes: {},
-      roofChoice: 1,    
+      roofChoice: 1,
       facadeChoice: 1,
       coreChoice: 1
     };
 
-    // Initialize all bar chart categories to 0
+    // Bar-Chart-Kategorien starten mit 0
     categories.forEach(cat => {
       participantData[socket.id].votes[cat] = 0;
     });
@@ -74,9 +77,8 @@ io.on('connection', (socket) => {
     io.emit('results', participantData);
   });
 
-  // When a participant moves a slider (for the bar-chart categories)
+  // Wenn ein Teilnehmer einen Schieberegler nutzt (Vote)
   socket.on('vote', (voteData) => {
-    // voteData = { category, value }
     const { category, value } = voteData;
     if (participantData[socket.id]) {
       participantData[socket.id].votes[category] = value;
@@ -84,9 +86,8 @@ io.on('connection', (socket) => {
     }
   });
 
-  // When a participant chooses ROOF/FACADE/CORE variant
+  // Wenn Dach-, Fassade- oder Kern-Variante gewählt wird
   socket.on('variantChoice', (choiceData) => {
-    // choiceData = { roofChoice, facadeChoice, coreChoice }
     if (participantData[socket.id]) {
       participantData[socket.id].roofChoice = choiceData.roofChoice;
       participantData[socket.id].facadeChoice = choiceData.facadeChoice;
@@ -95,7 +96,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // On disconnect, remove the participant
+  // Beim Verbindungsabbruch entfernen wir den Teilnehmer
   socket.on('disconnect', () => {
     console.log('Participant disconnected:', socket.id);
     delete participantData[socket.id];
@@ -103,7 +104,8 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = 3000;
+/* --- Port für Render: process.env.PORT oder 3000 --- */
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Server is running on http://${localIP}:${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
