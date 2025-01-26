@@ -9,7 +9,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-/* --- Define categories for the bar charts --- */
+/* --- Kategorien für die Bar Charts --- */
 const categories = [
   'operationalCosts',
   'demolitionCosts',
@@ -19,7 +19,7 @@ const categories = [
 ];
 
 /* 
-  Wir speichern participantData[socket.id] = {
+  participantData[socket.id] = {
     name, 
     profession, 
     votes: { category: value, ... }, 
@@ -30,13 +30,13 @@ const categories = [
 */
 let participantData = {};
 
-/* --- OPTIONAL: automatische IP-Erkennung für lokales Debugging --- */
+/* --- IP-Erkennung für lokales Debugging (nicht zwingend nötig) --- */
 function getLocalIPAddress() {
   const ifaces = os.networkInterfaces();
   for (const ifaceName in ifaces) {
     for (const iface of ifaces[ifaceName]) {
       if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address; // z.B. "192.168.0.213"
+        return iface.address; // z.B. 192.168.0.XX
       }
     }
   }
@@ -45,11 +45,21 @@ function getLocalIPAddress() {
 const localIP = getLocalIPAddress();
 console.log('Local IP detected:', localIP);
 
-/* --- Serve static files from the "public" folder --- */
+/* --- Statische Dateien aus dem "public"-Ordner bereitstellen. 
+       (Dieser liegt neben server.js, also z.B. Voting/public/...) --- */
 app.use(express.static(path.join(__dirname, 'public')));
 
-/* --- Kleines API-Endpoint, um lokal die IP anzuzeigen. 
-       Auf Render ist das evtl. weniger aussagekräftig. --- */
+/* 
+   NEUE Route: Liefere die Container-Seite aus, 
+   die sich ZWEI Ebenen höher befindet:
+   mediation-Tool/index.html
+*/
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', '..', 'index.html'));
+});
+
+/* --- Kleines API-Endpoint: /api/ip ---
+       (zeigt lokal die IP, auf Render meist 127.0.0.1) */
 app.get('/api/ip', (req, res) => {
   res.json({ ip: localIP });
 });
@@ -58,7 +68,7 @@ app.get('/api/ip', (req, res) => {
 io.on('connection', (socket) => {
   console.log('New participant connected:', socket.id);
 
-  // Registrieren (Name + Profession)
+  // Registrieren (Name + Beruf)
   socket.on('registerParticipant', (data) => {
     participantData[socket.id] = {
       name: data.name || 'Unknown',
@@ -68,16 +78,14 @@ io.on('connection', (socket) => {
       facadeChoice: 1,
       coreChoice: 1
     };
-
-    // Bar-Chart-Kategorien starten mit 0
+    // Kategorien initialisieren
     categories.forEach(cat => {
       participantData[socket.id].votes[cat] = 0;
     });
-
     io.emit('results', participantData);
   });
 
-  // Wenn ein Teilnehmer einen Schieberegler nutzt (Vote)
+  // Slidereingaben (Vote) pro Kategorie
   socket.on('vote', (voteData) => {
     const { category, value } = voteData;
     if (participantData[socket.id]) {
@@ -86,7 +94,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Wenn Dach-, Fassade- oder Kern-Variante gewählt wird
+  // Variantenwahl (Dach, Fassade, Kern)
   socket.on('variantChoice', (choiceData) => {
     if (participantData[socket.id]) {
       participantData[socket.id].roofChoice = choiceData.roofChoice;
@@ -96,7 +104,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Beim Verbindungsabbruch entfernen wir den Teilnehmer
+  // Teilnehmer entfernt sich
   socket.on('disconnect', () => {
     console.log('Participant disconnected:', socket.id);
     delete participantData[socket.id];
@@ -104,7 +112,7 @@ io.on('connection', (socket) => {
   });
 });
 
-/* --- Port für Render: process.env.PORT oder 3000 --- */
+/* --- Port für Render (oder 3000 lokal) --- */
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
