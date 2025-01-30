@@ -7,9 +7,76 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    /* Bestehende Styles ... */
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      background: #f5f7fa;
+    }
 
-    /* Hinzufügen von Klassen für die Phasen */
+    /* Füllt den ganzen Bildschirm, zentriert den Inhalt in einer Art Container */
+    .container {
+      max-width: 1800px; 
+      margin: 40px auto; /* In der Mitte auf großen Screens */
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 1.8rem;
+      text-align: center;
+    }
+
+    .qr-section {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    /* Charts-Container */
+    .charts-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
+
+    /* Jede "Chart-Karte" */
+    .chartWrapper {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      width: 400px;
+      height: 320px; /* hier etwas kleiner als vorher, um Platz zu lassen */
+      padding: 10px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .chartWrapper h2 {
+      margin: 0 0 10px 0;
+      font-size: 1.1rem;
+    }
+
+    /* Canvas etwas verkleinern, damit Pie-Charts nicht hinausragen */
+    .chartWrapper canvas {
+      width: 100%;  /* <== Reduzierte Breite/Höhe, damit der Radius passt */
+      height: 100%;
+    }
+
+    /* Klassen zur Phasensteuerung */
     .preferences-chart {
       display: block;
     }
@@ -40,11 +107,11 @@
 
     // Kategorien (wie im Server)
     const categoryConfig = [
-      { key: 'operationalCosts',     label: 'Operational Costs' },
-      { key: 'demolitionCosts',      label: 'Demolition Costs' },
+      { key: 'operationalCosts', label: 'Operational Costs' },
+      { key: 'demolitionCosts', label: 'Demolition Costs' },
       { key: 'greenAreaCityCooling', label: 'Green Area & City Cooling' },
-      { key: 'co2Footprint',         label: 'CO2 Footprint' },
-      { key: 'reuseOfMaterial',      label: 'Reuse of Material' }
+      { key: 'co2Footprint', label: 'CO2 Footprint' },
+      { key: 'reuseOfMaterial', label: 'Reuse of Material' }
     ];
 
     // Farben 
@@ -67,7 +134,7 @@
     let corePieChartObj = null;
 
     // 1) IP abrufen & QR-Code setzen (sofern /api/ip existiert)
-    const participantURL = window.location.origin + '/participant.html';
+    const participantURL = window.location.origin + '/Voting/public/participant.html';
     const qrAPI = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
                 + encodeURIComponent(participantURL);
     qrCodeImg.src = qrAPI;
