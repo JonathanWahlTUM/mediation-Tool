@@ -57,14 +57,14 @@ console.log('Local IP detected:', localIP);
       anstatt "public/index.html".
 */
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html')); // Korrigiert: Sende das Hauptindex.html
+  res.sendFile(path.join(__dirname, 'index.html')); // Hauptindex.html im Hauptverzeichnis
 });
 
 /* 
    2) Dann: Statische Dateien aus "Voting/public" 
       (bspw. /participant.html, /index.html [Voting], /qr.js, ...).
 */
-app.use('/Voting/public', express.static(path.join(__dirname, 'Voting/public'))); // Korrigiert: Mount statisches Verzeichnis
+app.use('/Voting/public', express.static(path.join(__dirname, 'Voting/public'))); // Mount statisches Verzeichnis
 
 /* --- API-Endpoint für lokale IP (ggf. unnötig auf Render) --- */
 app.get('/api/ip', (req, res) => {
