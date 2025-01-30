@@ -1,70 +1,89 @@
-
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Control Center</title>
-    <script src="/socket.io/socket.io.js"></script>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>ConStructive – Container</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header, footer {
+      background-color: #eee;
+      padding: 1rem;
+      text-align: center;
+    }
+    .container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2rem;
+      padding: 2rem;
+      box-sizing: border-box;
+    }
+    section {
+      width: 100%;
+      max-width: 2000px;
+    }
+    iframe {
+      width: 100%;
+      height: 45vh; /* Höhe der eingebetteten Inhalte */
+      min-height: 400px;
+      border: 1px solid #ccc;
+    }
+    /* Kontrollzentrum */
+    .control-panel {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      padding: 15px;
+      background: #e3eaf5;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 10px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background-color: #1e90ff;
+      color: white;
+    }
+    #timerDisplay {
+      font-size: 2rem;
+      font-weight: bold;
+      text-align: center;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Planning &amp; Mediation</h1>
+  </header>
 
-    <style>
-      body {
-        font-family: sans-serif;
-        background: #f5f7fa;
-        margin: 0;
-        padding: 20px;
-      }
+  <div class="container">
+    <!-- Oberer Bereich: ShapeDiver-App -->
+    <section>
+      <h2>ShapeDiver 3D-Konfiguration</h2>
+      <iframe
+        src="https://www.shapediver.com/app/builder/v1/main/latest/?redirect=0&amp;slug=FeJLrndFVu1Un0k5iLk1QRudGjd0Lp"
+        allowfullscreen>
+      </iframe>
+    </section>
 
-      .container {
-        max-width: 800px;
-        margin: 0 auto;
-        background: #fff;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      }
-
-      .control-panel {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        padding: 15px;
-        background: #e3eaf5;
-        border-radius: 8px;
-        margin-bottom: 20px;
-      }
-
-      button {
-        padding: 10px;
-        font-size: 1rem;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        background-color: #1e90ff;
-        color: white;
-      }
-
-      #timerDisplay {
-        font-size: 2rem;
-        font-weight: bold;
-        text-align: center;
-        margin-top: 10px;
-      }
-
-      iframe {
-        width: 100%;
-        height: 600px;
-        border: 1px solid #ccc;
-        margin-top: 20px;
-        border-radius: 8px;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h1>Control Center</h1>
-
+    <!-- Kontrollzentrum -->
+    <section>
+      <h2>Control Panel</h2>
       <div class="control-panel">
-        <h3>Voting Control</h3>
         <button id="togglePreferences">Toggle Preferences</button>
         <button id="toggleVariants">Toggle Variants</button>
         <button id="toggleBarCharts">Toggle Bar Charts</button>
@@ -72,55 +91,63 @@
         <button id="startTimer">Start Discussion Timer (10 min)</button>
         <div id="timerDisplay">10:00</div>
       </div>
+    </section>
 
-      <!-- Eingebettete Voting-Anzeige -->
-      <iframe src="voting/public/index.html"></iframe>
-    </div>
+    <!-- Unterer Bereich: Voting-Tool -->
+    <section>
+      <h2>Voting Overview / Mediation-Tool</h2>
+      <iframe src="/voting/public/index.html" allowfullscreen></iframe>
+    </section>
+  </div>
 
-    <script>
-      const socket = io();
-      let timerInterval;
-      let timeLeft = 600;
+  <footer>
+    &copy; 2025 – Dein Name / Dein Projekt
+  </footer>
 
-      document.getElementById("togglePreferences").addEventListener("click", () => {
-        socket.emit("togglePreferences");
-      });
+  <script>
+    const socket = io();
+    let timerInterval;
+    let timeLeft = 600;
 
-      document.getElementById("toggleVariants").addEventListener("click", () => {
-        socket.emit("toggleVariants");
-      });
+    document.getElementById("togglePreferences").addEventListener("click", () => {
+      socket.emit("togglePreferences");
+    });
 
-      document.getElementById("toggleBarCharts").addEventListener("click", () => {
-        socket.emit("toggleBarCharts");
-      });
+    document.getElementById("toggleVariants").addEventListener("click", () => {
+      socket.emit("toggleVariants");
+    });
 
-      document.getElementById("togglePieCharts").addEventListener("click", () => {
-        socket.emit("togglePieCharts");
-      });
+    document.getElementById("toggleBarCharts").addEventListener("click", () => {
+      socket.emit("toggleBarCharts");
+    });
 
-      document.getElementById("startTimer").addEventListener("click", () => {
-        clearInterval(timerInterval);
-        timeLeft = 600;
+    document.getElementById("togglePieCharts").addEventListener("click", () => {
+      socket.emit("togglePieCharts");
+    });
+
+    document.getElementById("startTimer").addEventListener("click", () => {
+      clearInterval(timerInterval);
+      timeLeft = 600;
+      updateTimerDisplay();
+      timerInterval = setInterval(() => {
+        timeLeft--;
         updateTimerDisplay();
-        timerInterval = setInterval(() => {
-          timeLeft--;
-          updateTimerDisplay();
-          if (timeLeft <= 0) {
-            clearInterval(timerInterval);
-          }
-        }, 1000);
-      });
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+        }
+      }, 1000);
+    });
 
-      function updateTimerDisplay() {
-        const minutes = Math.floor(timeLeft / 60);
-        const seconds = timeLeft % 60;
-        document.getElementById("timerDisplay").textContent = `${minutes}:${seconds.toString().padStart(2, "0")}`;
-      }
+    function updateTimerDisplay() {
+      const minutes = Math.floor(timeLeft / 60);
+      const seconds = timeLeft % 60;
+      document.getElementById("timerDisplay").textContent = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    }
 
-      socket.on("updateTimer", (newTime) => {
-        timeLeft = newTime;
-        updateTimerDisplay();
-      });
-    </script>
-  </body>
+    socket.on("updateTimer", (newTime) => {
+      timeLeft = newTime;
+      updateTimerDisplay();
+    });
+  </script>
+</body>
 </html>
