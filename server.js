@@ -9,6 +9,12 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+/* --- Voting Phases Status --- */
+let votingPhases = {
+  preferences: true, // Initial auf aktiviert gesetzt
+  variants: true
+};
+
 /* --- Define categories for the bar charts --- */
 const categories = [
   'operationalCosts',
@@ -51,16 +57,14 @@ console.log('Local IP detected:', localIP);
       anstatt "public/index.html".
 */
 app.get('/', (req, res) => {
-  // Eine Ebene nach oben (..), dann "index.html"
-  // => Pfad: /mediation-Tool/index.html
-  res.sendFile(path.join(__dirname, '..', 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html')); // Korrigiert: Sende das Hauptindex.html
 });
 
 /* 
-   2) Dann: Statische Dateien aus "public" 
+   2) Dann: Statische Dateien aus "Voting/public" 
       (bspw. /participant.html, /index.html [Voting], /qr.js, ...).
 */
-app.use(express.static(path.join(__dirname, 'public')));
+app.use('/Voting/public', express.static(path.join(__dirname, 'Voting/public'))); // Korrigiert: Mount statisches Verzeichnis
 
 /* --- API-Endpoint für lokale IP (ggf. unnötig auf Render) --- */
 app.get('/api/ip', (req, res) => {
@@ -70,6 +74,9 @@ app.get('/api/ip', (req, res) => {
 /* --- Socket.io-Setup --- */
 io.on('connection', (socket) => {
   console.log('New participant connected:', socket.id);
+
+  // Sende den aktuellen Phasenstatus an den neu verbundenen Client
+  socket.emit('phaseState', votingPhases);
 
   // Registrieren
   socket.on('registerParticipant', (data) => {
@@ -93,7 +100,7 @@ io.on('connection', (socket) => {
   // Slider/Vote-Eingaben
   socket.on('vote', (voteData) => {
     const { category, value } = voteData;
-    if (participantData[socket.id]) {
+    if (participantData[socket.id] && votingPhases.preferences) { // Nur wenn Preferences aktiviert
       participantData[socket.id].votes[category] = value;
       io.emit('results', participantData);
     }
@@ -101,7 +108,7 @@ io.on('connection', (socket) => {
 
   // Variantenwahl
   socket.on('variantChoice', (choiceData) => {
-    if (participantData[socket.id]) {
+    if (participantData[socket.id] && votingPhases.variants) { // Nur wenn Variants aktiviert
       participantData[socket.id].roofChoice = choiceData.roofChoice;
       participantData[socket.id].facadeChoice = choiceData.facadeChoice;
       participantData[socket.id].coreChoice = choiceData.coreChoice;
@@ -114,6 +121,15 @@ io.on('connection', (socket) => {
     console.log('Participant disconnected:', socket.id);
     delete participantData[socket.id];
     io.emit('results', participantData);
+  });
+
+  /* --- Handling Control Panel Events --- */
+  socket.on('togglePhase', (phase, state) => {
+    if (phase in votingPhases) {
+      votingPhases[phase] = state;
+      console.log(`Phase "${phase}" toggled to ${state}`);
+      io.emit('phaseState', votingPhases); // Broadcast to all clients
+    }
   });
 });
 
