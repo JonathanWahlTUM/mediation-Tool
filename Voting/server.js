@@ -7,7 +7,8 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Erlaubt alle Verbindungen (optional: auf eigene Domain setzen)
+    origin: "*",
+    methods: ["GET", "POST"]
   }
 });
 
@@ -35,9 +36,12 @@ app.get('/api/ip', (req, res) => {
   res.json({ ip: req.headers.host });
 });
 
-/* --- Routen --- */
+/* --- Routen richtig setzen --- */
+
+// Statische Dateien für das Voting-Tool in `voting/public`
 app.use('/voting', express.static(path.join(__dirname, 'voting/public')));
 
+// Hauptseite (Control Panel mit ShapeDiver & Voting-Tool)
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
