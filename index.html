@@ -1,40 +1,28 @@
+
 <!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Presenter Screen</title>
+    <title>Control Center</title>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-      html, body {
-        margin: 0;
-        padding: 0;
+      body {
         font-family: sans-serif;
         background: #f5f7fa;
+        margin: 0;
+        padding: 20px;
       }
 
       .container {
-        max-width: 1200px;
-        margin: 40px auto;
-        padding: 20px;
-      }
-
-      .card {
+        max-width: 800px;
+        margin: 0 auto;
         background: #fff;
-        border: 1px solid #ddd;
+        padding: 20px;
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        padding: 20px;
-        margin-bottom: 20px;
       }
 
-      .qr-section {
-        text-align: center;
-        margin-bottom: 20px;
-      }
-
-      /* Kontrollzentrum */
       .control-panel {
         display: flex;
         flex-direction: column;
@@ -42,10 +30,7 @@
         padding: 15px;
         background: #e3eaf5;
         border-radius: 8px;
-      }
-
-      .control-panel h3 {
-        margin-top: 0;
+        margin-bottom: 20px;
       }
 
       button {
@@ -58,72 +43,45 @@
         color: white;
       }
 
-      .charts-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 20px;
-        justify-content: center;
-      }
-
-      .chartWrapper {
-        background: #fff;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        width: 400px;
-        height: 320px;
-        padding: 10px;
-        box-sizing: border-box;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
-
-      .chartWrapper canvas {
-        width: 90%;
-        height: 90%;
-      }
-
       #timerDisplay {
         font-size: 2rem;
         font-weight: bold;
         text-align: center;
         margin-top: 10px;
       }
+
+      iframe {
+        width: 100%;
+        height: 600px;
+        border: 1px solid #ccc;
+        margin-top: 20px;
+        border-radius: 8px;
+      }
     </style>
   </head>
   <body>
     <div class="container">
-      <div class="card">
-        <h1 style="text-align:center;">Voting Overview</h1>
+      <h1>Control Center</h1>
 
-        <div class="qr-section">
-          <strong>Scan this code to vote:</strong><br />
-          <img id="qrCode" alt="QR Code"/>
-        </div>
-
-        <!-- Kontrollzentrum -->
-        <div class="control-panel">
-          <h3>Control Panel</h3>
-          <button id="togglePreferences">Toggle Preferences</button>
-          <button id="toggleVariants">Toggle Variants</button>
-          <button id="toggleBarCharts">Toggle Bar Charts</button>
-          <button id="togglePieCharts">Toggle Pie Charts</button>
-          <button id="startTimer">Start Discussion Timer (10 min)</button>
-          <div id="timerDisplay">10:00</div>
-        </div>
-
-        <!-- Charts -->
-        <div class="charts-container" id="chartsContainer"></div>
+      <div class="control-panel">
+        <h3>Voting Control</h3>
+        <button id="togglePreferences">Toggle Preferences</button>
+        <button id="toggleVariants">Toggle Variants</button>
+        <button id="toggleBarCharts">Toggle Bar Charts</button>
+        <button id="togglePieCharts">Toggle Pie Charts</button>
+        <button id="startTimer">Start Discussion Timer (10 min)</button>
+        <div id="timerDisplay">10:00</div>
       </div>
+
+      <!-- Eingebettete Voting-Anzeige -->
+      <iframe src="voting/public/index.html"></iframe>
     </div>
 
     <script>
       const socket = io();
       let timerInterval;
-      let timeLeft = 600; // 10 Minuten in Sekunden
+      let timeLeft = 600;
 
-      // Toggle Voting Phases
       document.getElementById("togglePreferences").addEventListener("click", () => {
         socket.emit("togglePreferences");
       });
@@ -140,7 +98,6 @@
         socket.emit("togglePieCharts");
       });
 
-      // Start Discussion Timer
       document.getElementById("startTimer").addEventListener("click", () => {
         clearInterval(timerInterval);
         timeLeft = 600;
@@ -160,24 +117,10 @@
         document.getElementById("timerDisplay").textContent = `${minutes}:${seconds.toString().padStart(2, "0")}`;
       }
 
-      // Server sendet neue Timer-Werte
       socket.on("updateTimer", (newTime) => {
         timeLeft = newTime;
         updateTimerDisplay();
       });
-
-      // IP für QR-Code abrufen
-      fetch('/api/ip')
-        .then(res => res.json())
-        .then(data => {
-          const ip = data.ip;
-          const participantURL = `http://${ip}:3000/participant.html`;
-          const qrAPI = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(participantURL)}`;
-          document.getElementById("qrCode").src = qrAPI;
-        })
-        .catch(err => {
-          console.error('Error fetching IP:', err);
-        });
     </script>
   </body>
 </html>
