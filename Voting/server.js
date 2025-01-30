@@ -38,12 +38,17 @@ app.get('/api/ip', (req, res) => {
 
 /* --- Routen richtig setzen --- */
 
-// Statische Dateien für das Voting-Tool in `voting/public`
-app.use('/voting', express.static(path.join(__dirname, 'voting/public')));
-
-// Hauptseite (Control Panel mit ShapeDiver & Voting-Tool)
+// **1️⃣ Haupt-Index-Seite (mit ShapeDiver & Voting-Tool)**
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html')); 
+});
+
+// **2️⃣ Voting-Ordner (enthält das Voting-Tool)**
+app.use('/voting', express.static(path.join(__dirname, 'Voting/public')));
+
+// **3️⃣ Teilnehmer-Seite**
+app.get('/participant', (req, res) => {
+  res.sendFile(path.join(__dirname, 'Voting/public', 'participant.html'));
 });
 
 /* --- WebSocket Events (Steuerung durch das Kontrollzentrum) --- */
@@ -139,5 +144,5 @@ io.on('connection', (socket) => {
 /* --- Server starten --- */
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Server running on Render at: http://localhost:${PORT}`);
+  console.log(`✅ Server läuft unter: https://mediation-tool.onrender.com`);
 });
