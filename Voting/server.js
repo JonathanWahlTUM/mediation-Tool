@@ -18,16 +18,15 @@ const categories = [
   'reuseOfMaterial'
 ];
 
-/* 
-  participantData[socket.id] = {
-    name, 
-    profession, 
-    votes: { category: value, ... }, 
-    roofChoice, 
-    facadeChoice, 
-    coreChoice
-  }
-*/
+/* Status-Variablen für Voting-Steuerung */
+let preferencesActive = false;
+let variantsActive = false;
+let showBarCharts = true;
+let showPieCharts = false;
+let discussionTimer = 600; // 10 Minuten
+let timerInterval = null;
+
+/* Teilnehmer-Daten */
 let participantData = {};
 
 /* --- OPTIONAL: IP-Erkennung (lokal nützlich, auf Render meist 127.0.0.1) --- */
@@ -45,24 +44,10 @@ function getLocalIPAddress() {
 const localIP = getLocalIPAddress();
 console.log('Local IP detected:', localIP);
 
-/* 
-   1) Route für "/" definieren, BEVOR du die statischen Dateien bedienst.
-      Dadurch wird garantiert, dass "/" immer deine Container-Seite ausliefert,
-      anstatt "public/index.html".
-*/
-app.get('/', (req, res) => {
-  // Eine Ebene nach oben (..), dann "index.html"
-  // => Pfad: /mediation-Tool/index.html
-  res.sendFile(path.join(__dirname, '..', 'index.html'));
-});
-
-/* 
-   2) Dann: Statische Dateien aus "public" 
-      (bspw. /participant.html, /index.html [Voting], /qr.js, ...).
-*/
+/* Statische Dateien bereitstellen */
 app.use(express.static(path.join(__dirname, 'public')));
 
-/* --- API-Endpoint für lokale IP (ggf. unnötig auf Render) --- */
+/* API-Endpoint für lokale IP */
 app.get('/api/ip', (req, res) => {
   res.json({ ip: localIP });
 });
@@ -70,6 +55,13 @@ app.get('/api/ip', (req, res) => {
 /* --- Socket.io-Setup --- */
 io.on('connection', (socket) => {
   console.log('New participant connected:', socket.id);
+
+  // Status-Updates beim neuen Teilnehmer senden
+  socket.emit('updatePreferences', preferencesActive);
+  socket.emit('updateVariants', variantsActive);
+  socket.emit('updateBarCharts', showBarCharts);
+  socket.emit('updatePieCharts', showPieCharts);
+  socket.emit('updateTimer', discussionTimer);
 
   // Registrieren
   socket.on('registerParticipant', (data) => {
@@ -82,7 +74,6 @@ io.on('connection', (socket) => {
       coreChoice: 1
     };
 
-    // Kategorien initialisieren
     categories.forEach(cat => {
       participantData[socket.id].votes[cat] = 0;
     });
@@ -109,6 +100,46 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Preferences (Slider) aktivieren/deaktivieren
+  socket.on('togglePreferences', () => {
+    preferencesActive = !preferencesActive;
+    io.emit('updatePreferences', preferencesActive);
+  });
+
+  // Variants aktivieren/deaktivieren
+  socket.on('toggleVariants', () => {
+    variantsActive = !variantsActive;
+    io.emit('updateVariants', variantsActive);
+  });
+
+  // Bar-Charts an/aus
+  socket.on('toggleBarCharts', () => {
+    showBarCharts = !showBarCharts;
+    io.emit('updateBarCharts', showBarCharts);
+  });
+
+  // Pie-Charts an/aus
+  socket.on('togglePieCharts', () => {
+    showPieCharts = !showPieCharts;
+    io.emit('updatePieCharts', showPieCharts);
+  });
+
+  // Diskussionstimer starten
+  socket.on('startTimer', () => {
+    if (timerInterval) clearInterval(timerInterval);
+    discussionTimer = 600; // 10 Minuten
+    io.emit('updateTimer', discussionTimer);
+
+    timerInterval = setInterval(() => {
+      discussionTimer--;
+      io.emit('updateTimer', discussionTimer);
+      if (discussionTimer <= 0) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }, 1000);
+  });
+
   // Disconnect
   socket.on('disconnect', () => {
     console.log('Participant disconnected:', socket.id);
@@ -117,7 +148,7 @@ io.on('connection', (socket) => {
   });
 });
 
-/* --- Port für Render oder local --- */
+/* --- Server starten --- */
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
