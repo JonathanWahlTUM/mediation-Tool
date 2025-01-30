@@ -1,176 +1,197 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Presenter Screen</title>
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<head>
+  <meta charset="utf-8" />
+  <title>Presenter Screen</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <style>
-      html, body {
-        margin: 0;
-        padding: 0;
-        font-family: sans-serif;
-        background: #f5f7fa;
-        /* Falls du es auf 16:10 fixieren möchtest, könntest du das via JS oder CSS tun.
-           Hier ermöglichen wir dem Inhalt, sich an die Fenstergröße anzupassen. */
-      }
+  <style>
+    /* Bestehende Styles ... */
 
-      /* Füllt den ganzen Bildschirm, zentriert den Inhalt in einer Art Container */
-      .container {
-        max-width: 1800px; 
-        margin: 40px auto; /* In der Mitte auf großen Screens */
-        padding: 20px;
-        box-sizing: border-box;
-      }
+    /* Hinzufügen von Klassen für die Phasen */
+    .preferences-chart {
+      display: block;
+    }
 
-      .card {
-        background: #fff;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        padding: 20px;
-        margin-bottom: 20px;
-      }
+    .variants-chart {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Voting Overview</h1>
 
-      h1 {
-        margin-top: 0;
-        font-size: 1.8rem;
-        text-align: center;
-      }
-
-      .qr-section {
-        text-align: center;
-        margin-bottom: 20px;
-      }
-
-      /* Charts-Container */
-      .charts-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 20px;
-        justify-content: center;
-      }
-
-      /* Jede "Chart-Karte" */
-      .chartWrapper {
-        background: #fff;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        width: 400px;
-        height: 320px; /* hier etwas kleiner als vorher, um Platz zu lassen */
-        padding: 10px;
-        box-sizing: border-box;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
-
-      .chartWrapper h2 {
-        margin: 0 0 10px 0;
-        font-size: 1.1rem;
-      }
-
-      /* Canvas etwas verkleinern, damit Pie-Charts nicht hinausragen */
-      .chartWrapper canvas {
-        width: 100%;  /* <== Reduzierte Breite/Höhe, damit der Radius passt */
-        height: 100%;
-      }
-
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="card">
-        <h1>Voting Overview</h1>
-
-        <div class="qr-section">
-          <strong>Scan this code to vote:</strong><br />
-          <!-- Dynamisches QR-Code-Image -->
-          <img id="qrCode" alt="QR Code"/>
-        </div>
-
-        <!-- Charts -->
-        <div class="charts-container" id="chartsContainer"></div>
+      <div class="qr-section">
+        <strong>Scan this code to vote:</strong><br />
+        <!-- Dynamisches QR-Code-Image -->
+        <img id="qrCode" alt="QR Code"/>
       </div>
+
+      <!-- Charts -->
+      <div class="charts-container" id="chartsContainer"></div>
     </div>
+  </div>
 
-    <script>
-      const socket = io();
+  <script>
+    const socket = io();
 
-      // Kategorien (wie im Server)
-      const categoryConfig = [
-        { key: 'operationalCosts',     label: 'Operational Costs' },
-        { key: 'demolitionCosts',      label: 'Demolition Costs' },
-        { key: 'greenAreaCityCooling', label: 'Green Area & City Cooling' },
-        { key: 'co2Footprint',         label: 'CO2 Footprint' },
-        { key: 'reuseOfMaterial',      label: 'Reuse of Material' }
-      ];
+    // Kategorien (wie im Server)
+    const categoryConfig = [
+      { key: 'operationalCosts',     label: 'Operational Costs' },
+      { key: 'demolitionCosts',      label: 'Demolition Costs' },
+      { key: 'greenAreaCityCooling', label: 'Green Area & City Cooling' },
+      { key: 'co2Footprint',         label: 'CO2 Footprint' },
+      { key: 'reuseOfMaterial',      label: 'Reuse of Material' }
+    ];
 
-      // Farben 
-      const categoryColors = [
-        'rgba(255, 99, 132, 0.7)', 
-        'rgba(54, 162, 235, 0.7)', 
-        'rgba(75, 192, 192, 0.7)', 
-        'rgba(201, 203, 207, 0.7)', 
-        'rgba(255, 159, 64, 0.7)'
-      ];
+    // Farben 
+    const categoryColors = [
+      'rgba(255, 99, 132, 0.7)', 
+      'rgba(54, 162, 235, 0.7)', 
+      'rgba(75, 192, 192, 0.7)', 
+      'rgba(201, 203, 207, 0.7)', 
+      'rgba(255, 159, 64, 0.7)'
+    ];
 
-      const chartsContainer = document.getElementById('chartsContainer');
-      const qrCodeImg = document.getElementById('qrCode');
+    const chartsContainer = document.getElementById('chartsContainer');
+    const qrCodeImg = document.getElementById('qrCode');
 
-      // Speichert die Charts
-      let participantCharts = {};
-      let averageChartObj = null;
-      let roofPieChartObj = null;
-      let facadePieChartObj = null;
-      let corePieChartObj = null;
+    // Speichert die Charts
+    let participantCharts = {};
+    let averageChartObj = null;
+    let roofPieChartObj = null;
+    let facadePieChartObj = null;
+    let corePieChartObj = null;
 
-      // 1) IP abrufen & QR-Code setzen (sofern /api/ip existiert)
-     // Anstelle von fetch('/api/ip')...
-const participantURL = window.location.origin + '/participant.html';
-const qrAPI = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
-            + encodeURIComponent(participantURL);
-qrCodeImg.src = qrAPI;
+    // 1) IP abrufen & QR-Code setzen (sofern /api/ip existiert)
+    const participantURL = window.location.origin + '/participant.html';
+    const qrAPI = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
+                + encodeURIComponent(participantURL);
+    qrCodeImg.src = qrAPI;
 
-      // 2) Auf "results" vom Server reagieren -> Charts aktualisieren
-      socket.on('results', (allParticipants) => {
-        const currentIDs = Object.keys(allParticipants);
+    // 2) Auf "results" vom Server reagieren -> Charts aktualisieren
+    socket.on('results', (allParticipants) => {
+      const currentIDs = Object.keys(allParticipants);
 
-        // Alte Charts entfernen, falls Teilnehmer weg sind
-        Object.keys(participantCharts).forEach(id => {
-          if (!currentIDs.includes(id)) {
-            participantCharts[id].chartInstance.destroy();
-            participantCharts[id].wrapperElement.remove();
-            delete participantCharts[id];
-          }
-        });
-
-        // Neue oder vorhandene Teilnehmer-Charts updaten/erstellen
-        currentIDs.forEach(id => {
-          const p = allParticipants[id];
-          if (!participantCharts[id]) {
-            createParticipantChart(id, p);
-          } else {
-            updateParticipantChart(id, p);
-          }
-        });
-
-        // Durchschnitts-Bar-Chart 
-        updateAverageChart(allParticipants);
-
-        // Kuchendiagramme (Roof, Facade, Core)
-        updateVariantCharts(allParticipants);
+      // Alte Charts entfernen, falls Teilnehmer weg sind
+      Object.keys(participantCharts).forEach(id => {
+        if (!currentIDs.includes(id)) {
+          participantCharts[id].chartInstance.destroy();
+          participantCharts[id].wrapperElement.remove();
+          delete participantCharts[id];
+        }
       });
 
-      // ========== Bar-Charts pro Teilnehmer ==========
-      function createParticipantChart(socketId, participant) {
+      // Neue oder vorhandene Teilnehmer-Charts updaten/erstellen
+      currentIDs.forEach(id => {
+        const p = allParticipants[id];
+        if (!participantCharts[id]) {
+          createParticipantChart(id, p);
+        } else {
+          updateParticipantChart(id, p);
+        }
+      });
+
+      // Durchschnitts-Bar-Chart 
+      updateAverageChart(allParticipants);
+
+      // Kuchendiagramme (Roof, Facade, Core)
+      updateVariantCharts(allParticipants);
+    });
+
+    // ========== Bar-Charts pro Teilnehmer ==========
+    function createParticipantChart(socketId, participant) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'chartWrapper preferences-chart'; // Klasse hinzugefügt
+
+      const title = document.createElement('h2');
+      title.textContent = `${participant.name} (${participant.profession})`;
+      wrapper.appendChild(title);
+
+      const canvas = document.createElement('canvas');
+      wrapper.appendChild(canvas);
+
+      chartsContainer.appendChild(wrapper);
+
+      const ctx = canvas.getContext('2d');
+      const initialData = categoryConfig.map(cat => participant.votes[cat.key]);
+
+      const newChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: categoryConfig.map(c => c.label),
+          datasets: [{
+            label: 'Value',
+            data: initialData,
+            backgroundColor: categoryColors,
+            borderColor: categoryColors.map(c => c.replace('0.7','1')),
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              min: -2,
+              max: 2
+            }
+          }
+        }
+      });
+
+      participantCharts[socketId] = {
+        chartInstance: newChart,
+        wrapperElement: wrapper
+      };
+    }
+
+    function updateParticipantChart(socketId, participant) {
+      const chartObj = participantCharts[socketId];
+      if (!chartObj) return;
+      const chart = chartObj.chartInstance;
+
+      const newData = categoryConfig.map(cat => participant.votes[cat.key]);
+      chart.data.datasets[0].data = newData;
+      chart.update();
+    }
+
+    // ========== Average Bar Chart ==========
+    function updateAverageChart(allParticipants) {
+      const ids = Object.keys(allParticipants);
+      const count = ids.length;
+
+      let sums = {
+        operationalCosts: 0,
+        demolitionCosts: 0,
+        greenAreaCityCooling: 0,
+        co2Footprint: 0,
+        reuseOfMaterial: 0
+      };
+
+      ids.forEach(id => {
+        const p = allParticipants[id];
+        categoryConfig.forEach(cat => {
+          sums[cat.key] += p.votes[cat.key];
+        });
+      });
+
+      let averages = categoryConfig.map(cat => {
+        if (count === 0) return 0;
+        return sums[cat.key] / count;
+      });
+
+      // Falls noch kein Average-Chart existiert, erstelle ihn
+      if (!averageChartObj) {
         const wrapper = document.createElement('div');
-        wrapper.className = 'chartWrapper';
+        wrapper.className = 'chartWrapper preferences-chart'; // Klasse hinzugefügt
 
         const title = document.createElement('h2');
-        title.textContent = `${participant.name} (${participant.profession})`;
+        title.textContent = 'Average';
         wrapper.appendChild(title);
 
         const canvas = document.createElement('canvas');
@@ -179,15 +200,13 @@ qrCodeImg.src = qrAPI;
         chartsContainer.appendChild(wrapper);
 
         const ctx = canvas.getContext('2d');
-        const initialData = categoryConfig.map(cat => participant.votes[cat.key]);
-
-        const newChart = new Chart(ctx, {
+        const avgChart = new Chart(ctx, {
           type: 'bar',
           data: {
             labels: categoryConfig.map(c => c.label),
             datasets: [{
-              label: 'Value',
-              data: initialData,
+              label: 'Avg Value',
+              data: averages,
               backgroundColor: categoryColors,
               borderColor: categoryColors.map(c => c.replace('0.7','1')),
               borderWidth: 1
@@ -206,170 +225,103 @@ qrCodeImg.src = qrAPI;
           }
         });
 
-        participantCharts[socketId] = {
+        averageChartObj = {
+          chartInstance: avgChart,
+          wrapperElement: wrapper
+        };
+      } else {
+        // Chart updaten
+        const c = averageChartObj.chartInstance;
+        c.data.datasets[0].data = averages;
+        c.update();
+      }
+    }
+
+    // ========== Pie-Charts (ROOF, FACADE, CORE) ==========
+    function updateVariantCharts(allParticipants) {
+      let roofCounts = [0, 0, 0];
+      let facadeCounts = [0, 0, 0];
+      let coreCounts = [0, 0, 0];
+
+      Object.keys(allParticipants).forEach(id => {
+        const p = allParticipants[id];
+        roofCounts[p.roofChoice - 1]++;
+        facadeCounts[p.facadeChoice - 1]++;
+        coreCounts[p.coreChoice - 1]++;
+      });
+
+      roofPieChartObj  = createOrUpdatePieChart(roofPieChartObj,  'Roof Variants',    roofCounts, 'variants-chart');
+      facadePieChartObj= createOrUpdatePieChart(facadePieChartObj,'Facade Variants',  facadeCounts, 'variants-chart');
+      corePieChartObj  = createOrUpdatePieChart(corePieChartObj,  'Core Variants',    coreCounts, 'variants-chart');
+    }
+
+    function createOrUpdatePieChart(chartObj, titleText, dataArray, phaseClass) {
+      if (!chartObj) {
+        const wrapper = document.createElement('div');
+        wrapper.className = `chartWrapper ${phaseClass}`; // Klasse hinzugefügt
+
+        const title = document.createElement('h2');
+        title.textContent = titleText;
+        wrapper.appendChild(title);
+
+        const canvas = document.createElement('canvas');
+        wrapper.appendChild(canvas);
+
+        chartsContainer.appendChild(wrapper);
+
+        const ctx = canvas.getContext('2d');
+        const newChart = new Chart(ctx, {
+          type: 'pie',
+          data: {
+            labels: ['Variant 1', 'Variant 2', 'Variant 3'],
+            datasets: [{
+              data: dataArray,
+              backgroundColor: [
+                'rgba(255, 99, 132, 0.7)',
+                'rgba(54, 162, 235, 0.7)',
+                'rgba(255, 206, 86, 0.7)'
+              ]
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+              padding: 10 
+            }
+          }
+        });
+
+        return {
           chartInstance: newChart,
           wrapperElement: wrapper
         };
+      } else {
+        // Update existing
+        const c = chartObj.chartInstance;
+        c.data.datasets[0].data = dataArray;
+        c.update();
+        return chartObj;
+      }
+    }
+
+    // ========== Phase State Handling ==========
+    socket.on('phaseState', (phases) => {
+      const preferencesCharts = document.querySelectorAll('.preferences-chart');
+      const variantsCharts = document.querySelectorAll('.variants-chart');
+
+      if (phases.preferences) {
+        preferencesCharts.forEach(chart => chart.style.display = 'block');
+      } else {
+        preferencesCharts.forEach(chart => chart.style.display = 'none');
       }
 
-      function updateParticipantChart(socketId, participant) {
-        const chartObj = participantCharts[socketId];
-        if (!chartObj) return;
-        const chart = chartObj.chartInstance;
-
-        const newData = categoryConfig.map(cat => participant.votes[cat.key]);
-        chart.data.datasets[0].data = newData;
-        chart.update();
+      if (phases.variants) {
+        variantsCharts.forEach(chart => chart.style.display = 'block');
+      } else {
+        variantsCharts.forEach(chart => chart.style.display = 'none');
       }
-
-      // ========== Average Bar Chart ==========
-      function updateAverageChart(allParticipants) {
-        const ids = Object.keys(allParticipants);
-        const count = ids.length;
-
-        let sums = {
-          operationalCosts: 0,
-          demolitionCosts: 0,
-          greenAreaCityCooling: 0,
-          co2Footprint: 0,
-          reuseOfMaterial: 0
-        };
-
-        ids.forEach(id => {
-          const p = allParticipants[id];
-          categoryConfig.forEach(cat => {
-            sums[cat.key] += p.votes[cat.key];
-          });
-        });
-
-        let averages = categoryConfig.map(cat => {
-          if (count === 0) return 0;
-          return sums[cat.key] / count;
-        });
-
-        // Falls noch kein Average-Chart existiert, erstelle ihn
-        if (!averageChartObj) {
-          const wrapper = document.createElement('div');
-          wrapper.className = 'chartWrapper';
-
-          const title = document.createElement('h2');
-          title.textContent = 'Average';
-          wrapper.appendChild(title);
-
-          const canvas = document.createElement('canvas');
-          wrapper.appendChild(canvas);
-
-          chartsContainer.appendChild(wrapper);
-
-          const ctx = canvas.getContext('2d');
-          const avgChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-              labels: categoryConfig.map(c => c.label),
-              datasets: [{
-                label: 'Avg Value',
-                data: averages,
-                backgroundColor: categoryColors,
-                borderColor: categoryColors.map(c => c.replace('0.7','1')),
-                borderWidth: 1
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              scales: {
-                y: {
-                  beginAtZero: true,
-                  min: -2,
-                  max: 2
-                }
-              }
-            }
-          });
-
-          averageChartObj = {
-            chartInstance: avgChart,
-            wrapperElement: wrapper
-          };
-        } else {
-          // Chart updaten
-          const c = averageChartObj.chartInstance;
-          c.data.datasets[0].data = averages;
-          c.update();
-        }
-      }
-
-      // ========== Pie-Charts (ROOF, FACADE, CORE) ==========
-      function updateVariantCharts(allParticipants) {
-        let roofCounts = [0, 0, 0];
-        let facadeCounts = [0, 0, 0];
-        let coreCounts = [0, 0, 0];
-
-        Object.keys(allParticipants).forEach(id => {
-          const p = allParticipants[id];
-          roofCounts[p.roofChoice - 1]++;
-          facadeCounts[p.facadeChoice - 1]++;
-          coreCounts[p.coreChoice - 1]++;
-        });
-
-        roofPieChartObj  = createOrUpdatePieChart(roofPieChartObj,  'Roof Variants',    roofCounts);
-        facadePieChartObj= createOrUpdatePieChart(facadePieChartObj,'Facade Variants',  facadeCounts);
-        corePieChartObj  = createOrUpdatePieChart(corePieChartObj,  'Core Variants',    coreCounts);
-      }
-
-      function createOrUpdatePieChart(chartObj, titleText, dataArray) {
-        if (!chartObj) {
-          const wrapper = document.createElement('div');
-          wrapper.className = 'chartWrapper';
-
-          const title = document.createElement('h2');
-          title.textContent = titleText;
-          wrapper.appendChild(title);
-
-          const canvas = document.createElement('canvas');
-          wrapper.appendChild(canvas);
-
-          chartsContainer.appendChild(wrapper);
-
-          const ctx = canvas.getContext('2d');
-          const newChart = new Chart(ctx, {
-            type: 'pie',
-            data: {
-              labels: ['Variant 1', 'Variant 2', 'Variant 3'],
-              datasets: [{
-                data: dataArray,
-                backgroundColor: [
-                  'rgba(255, 99, 132, 0.7)',
-                  'rgba(54, 162, 235, 0.7)',
-                  'rgba(255, 206, 86, 0.7)'
-                ]
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              /* 
-                layout.padding sorgt für etwas Abstand um das Pie herum,
-                damit nichts über die Box hinausragt.
-              */
-              layout: {
-                padding: 10 
-              }
-            }
-          });
-
-          return {
-            chartInstance: newChart,
-            wrapperElement: wrapper
-          };
-        } else {
-          // Update existing
-          const c = chartObj.chartInstance;
-          c.data.datasets[0].data = dataArray;
-          c.update();
-          return chartObj;
-        }
-      }
-    </script>
-  </body>
+    });
+  </script>
+</body>
 </html>
