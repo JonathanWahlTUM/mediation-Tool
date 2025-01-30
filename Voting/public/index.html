@@ -26,7 +26,7 @@
       background: #fff;
       border: 1px solid #ddd;
       border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       padding: 20px;
       margin-bottom: 20px;
     }
@@ -107,6 +107,7 @@
 
     // Kategorien (wie im Server)
     const categoryConfig = [
+      { key: 'initialInvestment', label: 'Initial Investment' }, // Neue Kategorie an erster Stelle
       { key: 'operationalCosts', label: 'Operational Costs' },
       { key: 'demolitionCosts', label: 'Demolition Costs' },
       { key: 'greenAreaCityCooling', label: 'Green Area & City Cooling' },
@@ -116,11 +117,12 @@
 
     // Farben 
     const categoryColors = [
-      'rgba(255, 99, 132, 0.7)', 
-      'rgba(54, 162, 235, 0.7)', 
-      'rgba(75, 192, 192, 0.7)', 
-      'rgba(201, 203, 207, 0.7)', 
-      'rgba(255, 159, 64, 0.7)'
+      'rgba(75, 192, 192, 0.7)', // Initial Investment - Grün
+      'rgba(255, 99, 132, 0.7)', // Operational Costs - Rot
+      'rgba(54, 162, 235, 0.7)', // Demolition Costs - Blau
+      'rgba(255, 206, 86, 0.7)', // Green Area & City Cooling - Gelb
+      'rgba(153, 102, 255, 0.7)', // CO2 Footprint - Lila
+      'rgba(255, 159, 64, 0.7)'  // Reuse of Material - Orange
     ];
 
     const chartsContainer = document.getElementById('chartsContainer');
@@ -133,7 +135,7 @@
     let facadePieChartObj = null;
     let corePieChartObj = null;
 
-    // 1) IP abrufen & QR-Code setzen (sofern /api/ip existiert)
+    // 1) URL für Teilnehmer-Seite abrufen & QR-Code setzen
     const participantURL = window.location.origin + '/Voting/public/participant.html';
     const qrAPI = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
                 + encodeURIComponent(participantURL);
@@ -233,6 +235,7 @@
       const count = ids.length;
 
       let sums = {
+        initialInvestment: 0, // Neue Kategorie hinzufügen
         operationalCosts: 0,
         demolitionCosts: 0,
         greenAreaCityCooling: 0,
@@ -249,7 +252,7 @@
 
       let averages = categoryConfig.map(cat => {
         if (count === 0) return 0;
-        return sums[cat.key] / count;
+        return (sums[cat.key] / count).toFixed(2); // Durchschnitt mit zwei Dezimalstellen
       });
 
       // Falls noch kein Average-Chart existiert, erstelle ihn
@@ -344,9 +347,9 @@
             datasets: [{
               data: dataArray,
               backgroundColor: [
-                'rgba(255, 99, 132, 0.7)',
-                'rgba(54, 162, 235, 0.7)',
-                'rgba(255, 206, 86, 0.7)'
+                'rgba(75, 192, 192, 0.7)', // Grün
+                'rgba(255, 99, 132, 0.7)', // Rot
+                'rgba(54, 162, 235, 0.7)'  // Blau
               ]
             }]
           },

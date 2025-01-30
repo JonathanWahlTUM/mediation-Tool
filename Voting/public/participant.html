@@ -75,6 +75,7 @@
       border: none;
       border-radius: 4px;
       cursor: pointer;
+      width: 100%;
     }
 
     button:disabled {
@@ -201,6 +202,7 @@
 
     // Bar chart categories
     const categories = [
+      { key: 'initialInvestment', label: 'Initial Investment' }, // Neue Kategorie an erster Stelle
       { key: 'operationalCosts', label: 'Operational Costs' },
       { key: 'demolitionCosts', label: 'Demolition Costs' },
       { key: 'greenAreaCityCooling', label: 'Green Area & City Cooling' },
@@ -235,6 +237,10 @@
       registerBtn.disabled = true;
       nameInput.disabled = true;
       professionInput.disabled = true;
+
+      // Show voting sections after registration
+      preferencesSection.style.display = 'block';
+      variantsSection.style.display = 'block';
     });
 
     // 2) Build sliders for categories
@@ -277,7 +283,7 @@
       socket.emit('variantChoice', { roofChoice, facadeChoice, coreChoice });
     }
 
-    // Listen for phase state
+    // Listen for phase state (optional, falls Phasensteuerung weiterhin genutzt wird)
     socket.on('phaseState', (phases) => {
       if (phases.preferences) {
         preferencesSection.style.display = 'block';
@@ -306,6 +312,11 @@
         facadeSelect.disabled = true;
         coreSelect.disabled = true;
       }
+    });
+
+    // Initial Build Sliders nach Registrierung
+    registerBtn.addEventListener('click', () => {
+      buildSliders();
     });
   </script>
 </body>
